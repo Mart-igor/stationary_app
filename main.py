@@ -16,6 +16,9 @@ import numpy as np
 from PySide6.QtCore import QThread, Signal
 import matplotlib.dates as mdates
 from matplotlib.patches import Rectangle
+
+from sklearn.metrics import f1_score
+from scipy.optimize import minimize
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -65,6 +68,12 @@ class MainWindow(QMainWindow):
         
         # Список для хранения выделенных участков
         self.selected_regions = []
+        # estimation personal
+        self.y_true = None
+        # frame для текущей даты
+        self.data_v3 = None
+        # retrive
+        self.all_ratios = None
 # ************************************************************************************
 
         self.styles = self.load_styles("json/style.json")#
@@ -100,7 +109,10 @@ class MainWindow(QMainWindow):
         self.ui.graph_opt.clicked.connect(self.plot_graph_optimize)
         # Отображение данных в таблице
         self.ui.add_stationar.clicked.connect(self.on_add_stationary_clicked)
-
+        # Расчет коэффициентов
+        self.ui.search_k.clicked.connect(self.ratio_calculation)
+        # Вывод итогового результата
+        self.ui.graph_result.clicked.connect(self.plot_graph_result)
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
 
 #--------------------------------------------------------------------------------------------------
@@ -301,7 +313,7 @@ class MainWindow(QMainWindow):
 
             # Генерация индексов
             indexes_v3 = [i for i in range(x_min, x_max, 1)]
-            data_v3 = data_PT.iloc[indexes_v3]
+            self.data_v3 = data_PT.iloc[indexes_v3]
 
             # Параметры алгоритма
             l1 = 0.2
@@ -309,10 +321,10 @@ class MainWindow(QMainWindow):
             l3 = 0.1
 
             # Начальные значения
-            x_st = data_v3.iloc[:50, 0].mean()
-            xf_st = data_v3.iloc[:50, 0].mean()
-            vf_st = data_v3.iloc[:50, 0].var()
-            df_st = 2 * data_v3.iloc[:50, 0].var()
+            x_st = self.data_v3.iloc[:50, 0].mean()
+            xf_st = self.data_v3.iloc[:50, 0].mean()
+            vf_st = self.data_v3.iloc[:50, 0].var()
+            df_st = 2 * self.data_v3.iloc[:50, 0].var()
 
             # Списки для хранения результатов
             r_list = []
@@ -322,9 +334,9 @@ class MainWindow(QMainWindow):
 
             # Основной цикл алгоритма
             for i in range(51, range_max_min):
-                xf = l1 * data_v3.iloc[i, 0] + (1 - l1) * xf_st
-                vf = l2 * (data_v3.iloc[i, 0] - xf_st) ** 2 + (1 - l2) * vf_st
-                df = l3 * (data_v3.iloc[i, 0] - x_st) ** 2 + (1 - l3) * df_st
+                xf = l1 * self.data_v3.iloc[i, 0] + (1 - l1) * xf_st
+                vf = l2 * (self.data_v3.iloc[i, 0] - xf_st) ** 2 + (1 - l2) * vf_st
+                df = l3 * (self.data_v3.iloc[i, 0] - x_st) ** 2 + (1 - l3) * df_st
                 r = round(((2 - l1) * vf) / df, 4)
 
                 vf_list.append(vf)
@@ -332,22 +344,22 @@ class MainWindow(QMainWindow):
                 r_list.append(r)
                 xf_list.append(xf)
 
-                x_st = data_v3.iloc[i, 0]
+                x_st = self.data_v3.iloc[i, 0]
                 xf_st = xf
                 vf_st = vf
                 df_st = df
 
             # Создание DataFrame с результатами
-            rr = pd.DataFrame(data=r_list, index=data_v3.iloc[51:range_max_min].index, columns=['R'])
-            # vff = pd.DataFrame(data=vf_list, index=data_v3.iloc[51:range_max_min].index, columns=['Vf'])
-            # dff = pd.DataFrame(data=df_list, index=data_v3.iloc[51:range_max_min].index, columns=['Df'])
-            # xff = pd.DataFrame(data=xf_list, index=data_v3.iloc[51:range_max_min].index, columns=['Xf'])
+            rr = pd.DataFrame(data=r_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['R'])
+            # vff = pd.DataFrame(data=vf_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Vf'])
+            # dff = pd.DataFrame(data=df_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Df'])
+            # xff = pd.DataFrame(data=xf_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Xf'])
 
             # Добавление столбца stationary
             rr['stationary'] = np.where(rr['R'] > 2.3715370273232828, 0, 1)
 
             # Объединение результатов
-            self.data_graph = pd.concat([data_v3, rr], axis=1)
+            self.data_graph = pd.concat([self.data_v3, rr], axis=1)
 
             self.data_graph['assessment'] = 0
             # Вывод результата в QTableWidget
@@ -472,6 +484,9 @@ class MainWindow(QMainWindow):
         # Обновляем таблицу QTableWidget
         self.display_data_in_table(self.data_graph)
 
+        #Получаем переменную с личной оценкой
+        self.y_true = np.array(self.data_graph['assessment'].iloc[51:])
+
         # Очищаем список выделенных участков
         self.selected_regions.clear()
 
@@ -497,7 +512,136 @@ class MainWindow(QMainWindow):
                 self.ui.table_classification.setItem(i, j, item)
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-# ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+#&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+    def search_ratio(self, x):
+    
+        x_min = int(self.ui.x_min.text())
+        x_max = int(self.ui.x_max.text())
+        x_range = x_max - x_min
+
+        l1 = x[0]
+        l2 = x[1]
+        l3 = x[2]
+
+        x_st = self.data_v3.iloc[:50, 0].mean()
+        xf_st = self.data_v3.iloc[:50, 0].mean()
+        vf_st = self.data_v3.iloc[:50, 0].var()
+        df_st = 2 * self.data_v3.iloc[:50, 0].var()
+        r_list = []
+
+        for i in range(51, x_range):
+            xf = l1 * self.data_v3.iloc[i, 0] + (1 - l1) * xf_st
+            vf = l2 * (self.data_v3.iloc[i, 0] - xf_st) ** 2 + (1 - l2) * vf_st
+            df = l3 * (self.data_v3.iloc[i, 0] - x_st) ** 2 + (1 - l3) * df_st
+            r = ((2 - l1) * vf) / df
+            r_list.append(r)
+            x_st = self.data_v3.iloc[i, 0]
+            xf_st = xf
+            vf_st = vf
+            df_st = df
+
+        r_np = np.array(r_list)
+
+        self.y_pred = np.where(r_np > 2.3715370273232828, 0, 1)
+        score = f1_score(self.y_true, self.y_pred, average='binary')
+
+        return -score
+
+    def ratio_calculation(self):
+        x0 = [0.5, 0.5, 0.5]
+        bnds = ((0, 1), (0, 1), (0, 1))
+
+        def callback(xk, *args, **kwargs):
+            self.ui.k_1.setText(f"K_1: {round(xk[0], 4)}")
+            self.ui.k_2.setText(f"K_2: {round(xk[1], 4)}")
+            self.ui.k_3.setText(f"K_3: {round(xk[2], 4)}")
+
+        result = minimize(self.search_ratio, x0, method="Powell", bounds=bnds, callback=callback)
+        self.all_ratios = result.x
+        self.essential_f = result.fun
+        self.ui.k_1.setText(f"K_1: {round(self.all_ratios[0], 4)}")
+        self.ui.k_2.setText(f"K_2: {round(self.all_ratios[1], 4)}")
+        self.ui.k_3.setText(f"K_3: {round(self.all_ratios[2], 4)}")
+        self.ui.F_score.setText(f"F_score: {round(self.essential_f, 4)}")
+#&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+    def plot_graph_result(self):
+
+        x_min = int(self.ui.x_min.text())
+        x_max = int(self.ui.x_max.text())
+        range_max_min = x_max - x_min
+
+    # Параметры алгоритма
+        l1 = self.all_ratios[0]
+        l2 = self.all_ratios[1]
+        l3 = self.all_ratios[2]
+
+        # Начальные значения
+        x_st = self.data_v3.iloc[:50, 0].mean()
+        xf_st = self.data_v3.iloc[:50, 0].mean()
+        vf_st = self.data_v3.iloc[:50, 0].var()
+        df_st = 2 * self.data_v3.iloc[:50, 0].var()
+
+        # Списки для хранения результатов
+        r_list = []
+        vf_list = []
+        df_list = []
+        xf_list = []
+
+        # Основной цикл алгоритма
+        for i in range(51, range_max_min):
+            xf = l1 * self.data_v3.iloc[i, 0] + (1 - l1) * xf_st
+            vf = l2 * (self.data_v3.iloc[i, 0] - xf_st) ** 2 + (1 - l2) * vf_st
+            df = l3 * (self.data_v3.iloc[i, 0] - x_st) ** 2 + (1 - l3) * df_st
+            r = round(((2 - l1) * vf) / df, 4)
+
+            vf_list.append(vf)
+            df_list.append(df)
+            r_list.append(r)
+            xf_list.append(xf)
+
+            x_st = self.data_v3.iloc[i, 0]
+            xf_st = xf
+            vf_st = vf
+            df_st = df
+
+        # Создание DataFrame с результатами
+        rr = pd.DataFrame(data=r_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['R'])
+        # vff = pd.DataFrame(data=vf_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Vf'])
+        # dff = pd.DataFrame(data=df_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Df'])
+        # xff = pd.DataFrame(data=xf_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Xf'])
+
+        # Добавление столбца stationary
+        rr['stationary'] = np.where(rr['R'] > 2.3715370273232828, 0, 1)
+        data_graph = pd.concat([self.data_v3, rr], axis=1)
+
+        # Очистка предыдущего графика
+        self.ui.widget_12.figure.clear()
+
+        # Построение графика
+        ax = self.ui.widget_12.figure.add_subplot(111)
+        ax.plot(data_graph.iloc[51:range_max_min].index, data_graph.iloc[51:range_max_min, 0], label='x')
+
+        # Построение стационарных точек
+        stationary_data = data_graph[data_graph['stationary'] == 1]
+        ax.plot(stationary_data.index, stationary_data['PV-FT-15'], 'r*', markersize=4, label='steady-state')
+
+        # Построение нестационарных точек
+        non_stationary_data = data_graph[data_graph['stationary'] == 0]
+        ax.plot(non_stationary_data.index, non_stationary_data['PV-FT-15'], 'bo', markersize=4, label='not at steady-state')
+
+        # Настройка графика
+        ax.set_xlabel("Индекс")
+        ax.set_ylabel("Значение")
+        ax.legend()
+        ax.grid(True)
+
+        # Обновление холста
+        self.ui.widget_12.canvas.draw()
+
+#&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
 
 
 # ##############################################################################################

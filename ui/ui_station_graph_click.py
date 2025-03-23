@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'stationAtPPBS.ui'
+## Form generated from reading UI file 'stationPvFict.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.8.2
 ##
@@ -676,17 +676,17 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_11.addWidget(self.search_k)
 
-        self.k_1 = QLineEdit(self.frame_17)
+        self.k_1 = QLabel(self.frame_17)
         self.k_1.setObjectName(u"k_1")
 
         self.horizontalLayout_11.addWidget(self.k_1)
 
-        self.k_2 = QLineEdit(self.frame_17)
+        self.k_2 = QLabel(self.frame_17)
         self.k_2.setObjectName(u"k_2")
 
         self.horizontalLayout_11.addWidget(self.k_2)
 
-        self.k_3 = QLineEdit(self.frame_17)
+        self.k_3 = QLabel(self.frame_17)
         self.k_3.setObjectName(u"k_3")
 
         self.horizontalLayout_11.addWidget(self.k_3)
@@ -892,6 +892,9 @@ class Ui_MainWindow(object):
         self.refresh_talbe.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c", None))
         self.label_8.setText(QCoreApplication.translate("MainWindow", u"\u0422\u0430\u0431\u043b\u0438\u0446\u0430 \u043a\u043b\u0430\u0441\u0441\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u0438 ", None))
         self.search_k.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0438\u0441\u043a \u043a\u043e\u044d\u0444\u0444\u0438\u0446\u0438\u0435\u043d\u0442\u043e\u0432", None))
+        self.k_1.setText("")
+        self.k_2.setText("")
+        self.k_3.setText("")
         self.F_score.setText(QCoreApplication.translate("MainWindow", u"F1-score =?", None))
         self.graph_result.setText(QCoreApplication.translate("MainWindow", u"\u041e\u043f\u0442\u0438\u043c\u0438\u0437\u0438\u0440\u043e\u0432\u0430\u0442\u044c", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"Reports", None))
