@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'stationQchHnO.ui'
+## Form generated from reading UI file 'stationAtPPBS.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.8.2
 ##
@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QHBoxLayout,
     QStackedWidget, QTableWidget, QTableWidgetItem, QVBoxLayout,
     QWidget)
 
-from mplwidget import MplWidget
+from mplwidget import (MplWidget, MplWidgetOptimize)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -485,6 +485,7 @@ class Ui_MainWindow(object):
         self.second_page.setObjectName(u"second_page")
         self.verticalLayout_18 = QVBoxLayout(self.second_page)
         self.verticalLayout_18.setObjectName(u"verticalLayout_18")
+        self.verticalLayout_18.setContentsMargins(0, 9, 0, 0)
         self.widget_7 = QWidget(self.second_page)
         self.widget_7.setObjectName(u"widget_7")
         sizePolicy1.setHeightForWidth(self.widget_7.sizePolicy().hasHeightForWidth())
@@ -596,8 +597,9 @@ class Ui_MainWindow(object):
         self.horizontalLayout_14.setContentsMargins(0, 0, 0, 0)
         self.optimize = QPushButton(self.frame_18)
         self.optimize.setObjectName(u"optimize")
+        self.optimize.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
-        self.horizontalLayout_14.addWidget(self.optimize)
+        self.horizontalLayout_14.addWidget(self.optimize, 0, Qt.AlignmentFlag.AlignHCenter)
 
 
         self.verticalLayout_17.addWidget(self.frame_18)
@@ -612,8 +614,19 @@ class Ui_MainWindow(object):
         self.horizontalLayout_15.setContentsMargins(0, 0, 0, 0)
         self.graph_opt = QPushButton(self.frame_19)
         self.graph_opt.setObjectName(u"graph_opt")
+        self.graph_opt.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         self.horizontalLayout_15.addWidget(self.graph_opt, 0, Qt.AlignmentFlag.AlignHCenter)
+
+        self.add_stationar = QPushButton(self.frame_19)
+        self.add_stationar.setObjectName(u"add_stationar")
+
+        self.horizontalLayout_15.addWidget(self.add_stationar)
+
+        self.refresh_talbe = QPushButton(self.frame_19)
+        self.refresh_talbe.setObjectName(u"refresh_talbe")
+
+        self.horizontalLayout_15.addWidget(self.refresh_talbe)
 
 
         self.verticalLayout_17.addWidget(self.frame_19)
@@ -636,13 +649,13 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_19.addWidget(self.label_8, 0, Qt.AlignmentFlag.AlignHCenter)
 
-        self.tableWidget = QTableWidget(self.widget_10)
-        self.tableWidget.setObjectName(u"tableWidget")
-        sizePolicy1.setHeightForWidth(self.tableWidget.sizePolicy().hasHeightForWidth())
-        self.tableWidget.setSizePolicy(sizePolicy1)
-        self.tableWidget.setMinimumSize(QSize(300, 0))
+        self.table_classification = QTableWidget(self.widget_10)
+        self.table_classification.setObjectName(u"table_classification")
+        sizePolicy1.setHeightForWidth(self.table_classification.sizePolicy().hasHeightForWidth())
+        self.table_classification.setSizePolicy(sizePolicy1)
+        self.table_classification.setMinimumSize(QSize(300, 0))
 
-        self.verticalLayout_19.addWidget(self.tableWidget)
+        self.verticalLayout_19.addWidget(self.table_classification)
 
 
         self.horizontalLayout_8.addWidget(self.widget_10, 0, Qt.AlignmentFlag.AlignHCenter)
@@ -693,6 +706,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_18.setObjectName(u"horizontalLayout_18")
         self.graph_result = QPushButton(self.widget_11)
         self.graph_result.setObjectName(u"graph_result")
+        self.graph_result.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         self.horizontalLayout_18.addWidget(self.graph_result, 0, Qt.AlignmentFlag.AlignHCenter)
 
@@ -703,6 +717,13 @@ class Ui_MainWindow(object):
         self.widget_8.setObjectName(u"widget_8")
         sizePolicy1.setHeightForWidth(self.widget_8.sizePolicy().hasHeightForWidth())
         self.widget_8.setSizePolicy(sizePolicy1)
+        self.horizontalLayout_19 = QHBoxLayout(self.widget_8)
+        self.horizontalLayout_19.setObjectName(u"horizontalLayout_19")
+        self.widget_12 = MplWidgetOptimize(self.widget_8)
+        self.widget_12.setObjectName(u"widget_12")
+
+        self.horizontalLayout_19.addWidget(self.widget_12)
+
 
         self.verticalLayout_18.addWidget(self.widget_8)
 
@@ -867,6 +888,8 @@ class Ui_MainWindow(object):
         self.label_12.setText(QCoreApplication.translate("MainWindow", u"\u0413\u0440\u0430\u043d\u0438\u0447\u043d\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435", None))
         self.optimize.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043e\u0431\u0440\u0430\u0437\u0438\u0442\u044c \u0442\u0430\u0431\u043b\u0438\u0446\u0443 \u043a\u043b\u0441\u0441\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u0439", None))
         self.graph_opt.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0441\u0442\u0440\u043e\u0438\u0442\u044c \u0433\u0440\u0430\u0444\u0438\u043a ", None))
+        self.add_stationar.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c", None))
+        self.refresh_talbe.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u043d\u0443\u043b\u0438\u0442\u044c", None))
         self.label_8.setText(QCoreApplication.translate("MainWindow", u"\u0422\u0430\u0431\u043b\u0438\u0446\u0430 \u043a\u043b\u0430\u0441\u0441\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u0438 ", None))
         self.search_k.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0438\u0441\u043a \u043a\u043e\u044d\u0444\u0444\u0438\u0446\u0438\u0435\u043d\u0442\u043e\u0432", None))
         self.F_score.setText(QCoreApplication.translate("MainWindow", u"F1-score =?", None))

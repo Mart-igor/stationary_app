@@ -1,120 +1,155 @@
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QPushButton, QFileDialog, QComboBox, QLabel
-)
-from PySide6.QtCore import Qt
+import numpy as np
+import pandas as pd
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QPushButton
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import pandas as pd
-import matplotlib.dates as mdates
+from matplotlib.patches import Rectangle
 
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("CSV to Graph Example")
-        self.setGeometry(100, 100, 800, 600)
+class MplWidgetOptimize(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-        # Основной виджет и layout
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.layout = QVBoxLayout(self.central_widget)
-
-        # Кнопка для загрузки CSV
-        self.load_button = QPushButton("Load CSV")
-        self.load_button.clicked.connect(self.load_csv)
-        self.layout.addWidget(self.load_button)
-
-        # Выпадающие списки для выбора столбцов
-        self.combo_x = QComboBox()
-        self.combo_y = QComboBox()
-        self.layout.addWidget(QLabel("Выберите столбец для оси X:"))
-        self.layout.addWidget(self.combo_x)
-        self.layout.addWidget(QLabel("Выберите столбец для оси Y:"))
-        self.layout.addWidget(self.combo_y)
-
-        # Кнопка для построения графика
-        self.plot_button = QPushButton("Построить график")
-        self.plot_button.clicked.connect(self.plot_graph)
-        self.plot_button.setEnabled(False)  # Изначально кнопка неактивна
-        self.layout.addWidget(self.plot_button)
-
-        # Виджет для отображения графика
+        # Создаем фигуру и холст Matplotlib
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
-        self.layout.addWidget(self.canvas)
 
-        # Таблица для отображения данных (опционально)
-        self.table = QTableWidget()
-        self.layout.addWidget(self.table)
+        # Добавляем холст в layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
 
-    def load_csv(self):
-        # Открываем диалог выбора файла
-        file_name, _ = QFileDialog.getOpenFileName(self, "Open CSV File", "", "CSV Files (*.csv)")
-        if not file_name:
-            return
+        # Переменные для хранения координат выделения
+        self.selection_start = None
+        self.selection_end = None
 
-        # Чтение CSV-файла с помощью pandas
-        self.df = pd.read_csv(file_name)
-
-        # Преобразование столбца с датами (если он есть)
-        for col in self.df.columns:
-            if pd.api.types.is_string_dtype(self.df[col]):
-                try:
-                    self.df[col] = pd.to_datetime(self.df[col])
-                except:
-                    pass
-
-        # Отображение данных в таблице (опционально)
-        self.table.setRowCount(self.df.shape[0])
-        self.table.setColumnCount(self.df.shape[1])
-        self.table.setHorizontalHeaderLabels(self.df.columns)
-        for i in range(self.df.shape[0]):
-            for j in range(self.df.shape[1]):
-                self.table.setItem(i, j, QTableWidgetItem(str(self.df.iat[i, j])))
-
-        # Заполнение выпадающих списков названиями столбцов
-        self.combo_x.clear()
-        self.combo_y.clear()
-        self.combo_x.addItems(self.df.columns)
-        self.combo_y.addItems(self.df.columns)
-
-        # Активируем кнопку для построения графика
-        self.plot_button.setEnabled(True)
-
-    def plot_graph(self):
-        try:
-            x_column = self.combo_x.currentText()
-            y_column = self.combo_y.currentText()
-
-            # Проверка, что данные по оси Y числовые
-            if not pd.api.types.is_numeric_dtype(self.df[y_column]):
-                print("Ошибка: данные по оси Y должны быть числовыми.")
-                return
-
-            # Очистка предыдущего графика
-            self.figure.clear()
-
-            # Построение графика
-            ax = self.figure.add_subplot(111)
-            ax.plot(self.df[x_column], self.df[y_column], label=f"{y_column} vs {x_column}")
-            ax.set_xlabel(x_column)
-            ax.set_ylabel(y_column)
-            ax.legend()
-            ax.grid(True)
-
-            # Форматирование оси X (если это даты)
-            if pd.api.types.is_datetime64_any_dtype(self.df[x_column]):
-                ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
-                self.figure.autofmt_xdate()  # Автоматический поворот дат
-
-            # Обновление холста
-            self.canvas.draw()
-        except Exception as e:
-            print(f"Ошибка при построении графика: {e}")
+    def connect_events(self, callback):
+        """Подключение событий мыши"""
+        self.canvas.mpl_connect('button_press_event', callback.on_press)
+        self.canvas.mpl_connect('button_release_event', callback.on_release)
 
 
-if __name__ == "__main__":
-    app = QApplication([])
-    window = MainWindow()
-    window.show()
-    app.exec()
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # Инициализация интерфейса
+        self.ui = self.setup_ui()
+
+        # Подключение событий мыши
+        self.mpl_widget = MplWidgetOptimize()
+        self.mpl_widget.connect_events(self)
+
+        # Пример данных
+        self.df = pd.DataFrame({
+            'Data': np.random.rand(100),  # Пример данных для графика
+            'Selection': np.zeros(100)   # Столбец для выделения
+        })
+
+        # Список для хранения выделенных участков
+        self.selected_regions = []
+
+        # Отображение данных в таблице
+        self.display_data_in_table(self.df)
+
+        # Построение графика
+        self.plot_data()
+
+    def setup_ui(self):
+        """Инициализация интерфейса"""
+        layout = QVBoxLayout()
+
+        # Добавляем виджет для графика
+        layout.addWidget(self.mpl_widget)
+
+        # Кнопка для добавления стационарных участков
+        self.add_stationary_button = QPushButton("Add Stationary")
+        self.add_stationary_button.clicked.connect(self.on_add_stationary_clicked)
+        layout.addWidget(self.add_stationary_button)
+
+        # Таблица для отображения данных
+        self.table_data = QTableWidget()
+        layout.addWidget(self.table_data)
+
+        self.setLayout(layout)
+
+    def on_press(self, event):
+        """Обработка нажатия мыши"""
+        if event.inaxes is not None:
+            self.selection_start = event.xdata  # Сохраняем начало выделения
+
+    def on_release(self, event):
+        """Обработка отпускания мыши"""
+        if event.inaxes is not None and self.selection_start is not None:
+            self.selection_end = event.xdata  # Сохраняем конец выделения
+
+            # Добавляем выделенный участок в список
+            self.selected_regions.append((self.selection_start, self.selection_end))
+
+            # Перекрашиваем выделенный участок на графике
+            self.highlight_selected_region(self.selection_start, self.selection_end)
+
+            # Сбрасываем выделение
+            self.selection_start = None
+            self.selection_end = None
+
+    def highlight_selected_region(self, start, end):
+        """Перекрашивание выделенного участка на графике"""
+        ax = self.mpl_widget.figure.axes[0]
+        height = ax.get_ylim()[1] - ax.get_ylim()[0]  # Высота графика
+        rect = Rectangle((start, ax.get_ylim()[0]), end - start, height,
+                         color='yellow', alpha=0.3)  # Прямоугольник для выделения
+        ax.add_patch(rect)
+        self.mpl_widget.canvas.draw()
+
+    def on_add_stationary_clicked(self):
+        """Обработка нажатия кнопки 'add_stationary'"""
+        for start, end in self.selected_regions:
+            # Определяем диапазон индексов
+            start_index = int(np.floor(start))
+            end_index = int(np.ceil(end))
+
+            # Убедимся, что индексы находятся в пределах данных
+            start_index = max(0, min(start_index, len(self.df) - 1))
+            end_index = max(0, min(end_index, len(self.df) - 1))
+
+            # Обновляем столбец 'Selection' в выделенном диапазоне
+            self.df.loc[start_index:end_index, 'Selection'] = 1
+
+        # Обновляем таблицу QTableWidget
+        self.display_data_in_table(self.df)
+
+        # Очищаем список выделенных участков
+        self.selected_regions.clear()
+
+        # Очищаем выделения на графике
+        self.clear_highlights()
+
+    def clear_highlights(self):
+        """Очистка всех выделений на графике"""
+        ax = self.mpl_widget.figure.axes[0]
+        for patch in ax.patches:
+            patch.remove()
+        self.mpl_widget.canvas.draw()
+
+    def display_data_in_table(self, data):
+        """Отображение данных в QTableWidget"""
+        self.table_data.setRowCount(data.shape[0])
+        self.table_data.setColumnCount(data.shape[1])
+        self.table_data.setHorizontalHeaderLabels(data.columns)
+
+        for i in range(data.shape[0]):
+            for j in range(data.shape[1]):
+                item = QTableWidgetItem(str(data.iat[i, j]))
+                self.table_data.setItem(i, j, item)
+
+    def plot_data(self):
+        """Построение графика"""
+        self.mpl_widget.figure.clear()
+        ax = self.mpl_widget.figure.add_subplot(111)
+        ax.plot(self.df.index, self.df['Data'], label="Данные")
+        ax.set_xlabel("Индекс строки")
+        ax.set_ylabel("Значение")
+        ax.legend()
+        ax.grid(True)
+        self.mpl_widget.canvas.draw()

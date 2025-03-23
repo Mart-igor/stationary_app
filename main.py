@@ -4,17 +4,18 @@ import json
 from PySide6.QtWidgets import QApplication, QMainWindow, QButtonGroup
 from PySide6.QtCore import QRect, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QIcon
-from ui.ui_station_rash import Ui_MainWindow
+from ui.ui_station_graph_click import Ui_MainWindow
 from PySide6 import QtCore
 
 from Function import AppFunction
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
-from PySide6.QtWidgets import QFileDialog,QTableWidgetItem,  QTableWidget, QVBoxLayout, QWidget, QLabel
+from PySide6.QtWidgets import QFileDialog,QTableWidgetItem,  QTableWidget, QPushButton, QWidget, QLabel
 import pandas as pd
+import numpy as np
 from PySide6.QtCore import QThread, Signal
 import matplotlib.dates as mdates
-
+from matplotlib.patches import Rectangle
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -55,6 +56,17 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
+# ************************************************************************************
+        self.df = None
+        self.selection_start = None
+        self.selection_end = None
+
+        self.data_graph = None
+        
+        # Список для хранения выделенных участков
+        self.selected_regions = []
+# ************************************************************************************
+
         self.styles = self.load_styles("json/style.json")#
 
         self.apply_global_styles()
@@ -75,15 +87,28 @@ class MainWindow(QMainWindow):
 
 
 
-
+        # Устанавливаем начальную страницу
+        # self.stacked_widget.setCurrentIndex(0)
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
         self.ui.load_btn.clicked.connect(self.load_csv)
         self.ui.data_graph_btn.clicked.connect(self.plot_graph)
         self.ui.data_graph_btn.setEnabled(False)  # Изначально кнопка неактивна
+        self.ui.optimize.clicked.connect(self.calculate_stationary)
+        # перейти на вторую страницу
+        self.ui.next_page_1.clicked.connect(self.go_to_page_2)
+        # построение графика оптимизации
+        self.ui.graph_opt.clicked.connect(self.plot_graph_optimize)
+        # Отображение данных в таблице
+        self.ui.add_stationar.clicked.connect(self.on_add_stationary_clicked)
+
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
 
+#--------------------------------------------------------------------------------------------------
+# РАБОТА С ГРАФИКОМ И ВЫДЕЛЕНИЕМ УЧАСТКОВ
+        # Подключение событий мыши widget12
+        self.ui.widget_12.connect_events(self)
 
-
+#--------------------------------------------------------------------------------------------------
 
 
 
@@ -253,10 +278,233 @@ class MainWindow(QMainWindow):
             self.ui.widget_4.canvas.draw()
         except Exception as e:
             print(f"Ошибка при построении графика: {e}")
+
+
+    def calculate_stationary(self):
+        try:
+            # Получаем значения из QLineEdit
+            x_min = int(self.ui.x_min.text())
+            x_max = int(self.ui.x_max.text())
+
+            # Получаем название столбца из QComboBox
+            column_name = self.ui.box_y.currentText()
+
+            # Проверяем, что столбец существует в DataFrame
+            if column_name not in self.df.columns:
+                raise ValueError(f"Столбец '{column_name}' не найден в DataFrame")
+
+            # Выбираем данные из DataFrame
+            data_PT = self.df[[column_name]]
+
+            # Вычисляем диапазон
+            range_max_min = x_max - x_min
+
+            # Генерация индексов
+            indexes_v3 = [i for i in range(x_min, x_max, 1)]
+            data_v3 = data_PT.iloc[indexes_v3]
+
+            # Параметры алгоритма
+            l1 = 0.2
+            l2 = 0.1
+            l3 = 0.1
+
+            # Начальные значения
+            x_st = data_v3.iloc[:50, 0].mean()
+            xf_st = data_v3.iloc[:50, 0].mean()
+            vf_st = data_v3.iloc[:50, 0].var()
+            df_st = 2 * data_v3.iloc[:50, 0].var()
+
+            # Списки для хранения результатов
+            r_list = []
+            vf_list = []
+            df_list = []
+            xf_list = []
+
+            # Основной цикл алгоритма
+            for i in range(51, range_max_min):
+                xf = l1 * data_v3.iloc[i, 0] + (1 - l1) * xf_st
+                vf = l2 * (data_v3.iloc[i, 0] - xf_st) ** 2 + (1 - l2) * vf_st
+                df = l3 * (data_v3.iloc[i, 0] - x_st) ** 2 + (1 - l3) * df_st
+                r = round(((2 - l1) * vf) / df, 4)
+
+                vf_list.append(vf)
+                df_list.append(df)
+                r_list.append(r)
+                xf_list.append(xf)
+
+                x_st = data_v3.iloc[i, 0]
+                xf_st = xf
+                vf_st = vf
+                df_st = df
+
+            # Создание DataFrame с результатами
+            rr = pd.DataFrame(data=r_list, index=data_v3.iloc[51:range_max_min].index, columns=['R'])
+            # vff = pd.DataFrame(data=vf_list, index=data_v3.iloc[51:range_max_min].index, columns=['Vf'])
+            # dff = pd.DataFrame(data=df_list, index=data_v3.iloc[51:range_max_min].index, columns=['Df'])
+            # xff = pd.DataFrame(data=xf_list, index=data_v3.iloc[51:range_max_min].index, columns=['Xf'])
+
+            # Добавление столбца stationary
+            rr['stationary'] = np.where(rr['R'] > 2.3715370273232828, 0, 1)
+
+            # Объединение результатов
+            self.data_graph = pd.concat([data_v3, rr], axis=1)
+
+            self.data_graph['assessment'] = 0
+            # Вывод результата в QTableWidget
+            self.ui.table_classification.setRowCount(self.data_graph.shape[0])
+            self.ui.table_classification.setColumnCount(self.data_graph.shape[1])
+            self.ui.table_classification.setHorizontalHeaderLabels(self.data_graph.columns)
+            
+            for i in range(self.data_graph.shape[0]):
+                for j in range(self.data_graph.shape[1]):
+                    self.ui.table_classification.setItem(i, j, QTableWidgetItem(str(self.data_graph.iat[i, j])))
+            
+
+        except Exception as e:
+            print(f"Ошибка: {e}")
+# ---------------------------------------------------------------------------------------------------------------------------------------------------
+# Построение грфика для оптимизации
+    def plot_graph_optimize(self):
+        try:
+            # Получаем данные из QTableWidget
+            table = self.ui.table_classification  # Замените на ваш QTableWidget
+            row_count = table.rowCount()
+            column_count = table.columnCount()
+
+            # Проверяем, что таблица не пустая
+            if row_count == 0 or column_count == 0:
+                print("Ошибка: таблица пуста.")
+                return
+            
+            # Извлекаем данные из первого столбца (ось Y)
+            y_data = []
+            for i in range(row_count):
+                item = table.item(i, 0)  # Первый столбец (индекс 0)
+                if item is not None:
+                    try:
+                        y_value = float(item.text())  # Преобразуем текст в число
+                        y_data.append(y_value)
+                    except ValueError:
+                        print(f"Ошибка: значение в строке {i} не является числом.")
+                        return
+
+            # Проверяем, что данные по оси Y не пустые
+            if not y_data:
+                print("Ошибка: нет данных для построения графика.")
+                return
+
+            # Получаем значения из QLineEdit
+            x_min = int(self.ui.x_min.text())
+            x_max = int(self.ui.x_max.text())
+
+            # Индексы строк (ось X)
+            x_data = range(x_min, x_max)
+
+            # Очистка предыдущего графика
+            self.ui.widget_12.figure.clear()
+
+            # Построение графика
+            ax = self.ui.widget_12.figure.add_subplot(111)
+            ax.plot(x_data, y_data, label="График по первому столбцу")
+            ax.set_xlabel("Индекс строки")  # Подпись оси X
+            ax.set_ylabel("Значение первого столбца")  # Подпись оси Y
+            ax.legend()
+            ax.grid(True)
+
+            # Обновление холста
+            self.ui.widget_12.canvas.draw()
+        except Exception as e:
+            print(f"Ошибка при построении графика: {e}")
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
 
 
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Ваимодействие с графиком через мышьку
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    def on_press(self, event):
+        """Обработка нажатия мыши"""
+        if event.inaxes is not None:
+            self.selection_start = event.xdata  # Сохраняем начало выделения
 
+    def on_release(self, event):
+        """Обработка отпускания мыши"""
+        if event.inaxes is not None and self.selection_start is not None:
+            self.selection_end = event.xdata  # Сохраняем конец выделения
+
+            # Добавляем выделенный участок в список
+            self.selected_regions.append((self.selection_start, self.selection_end))
+
+            # Перекрашиваем выделенный участок на графике
+            self.highlight_selected_region(self.selection_start, self.selection_end)
+
+            # Сбрасываем выделение
+            self.selection_start = None
+            self.selection_end = None
+
+    def highlight_selected_region(self, start, end):
+        """Перекрашивание выделенного участка на графике"""
+        ax = self.ui.widget_12.figure.axes[0]
+        height = ax.get_ylim()[1] - ax.get_ylim()[0]  # Высота графика
+        rect = Rectangle((start, ax.get_ylim()[0]), end - start, height,
+                         color='yellow', alpha=0.3)  # Прямоугольник для выделения
+        ax.add_patch(rect)
+        self.ui.widget_12.canvas.draw()
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Обновление таблицы послед выделения участков
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    def on_add_stationary_clicked(self):
+        """Обработка нажатия кнопки 'add_stationary'"""
+        for start, end in self.selected_regions:
+            # Определяем диапазон индексов
+            start_index = int(np.floor(start))
+            end_index = int(np.ceil(end))
+
+            # Убедимся, что индексы находятся в пределах данных
+            start_index = max(0, min(start_index, len(self.df) - 1))
+            end_index = max(0, min(end_index, len(self.df) - 1))
+
+            # Обновляем столбец 'assessment' в выделенном диапазоне
+            self.data_graph.loc[start_index:end_index, 'assessment'] = 1
+
+        # Обновляем таблицу QTableWidget
+        self.display_data_in_table(self.data_graph)
+
+        # Очищаем список выделенных участков
+        self.selected_regions.clear()
+
+        # Очищаем выделения на графике
+        self.clear_highlights()
+
+    def clear_highlights(self):
+        """Очистка всех выделений на графике"""
+        ax = self.ui.widget_12.figure.axes[0]
+        for patch in ax.patches:
+            patch.remove()
+        self.ui.widget_12.canvas.draw()
+
+    def display_data_in_table(self, data):
+        """Отображение данных в QTableWidget"""
+        self.ui.table_classification.setRowCount(data.shape[0])
+        self.ui.table_classification.setColumnCount(data.shape[1])
+        self.ui.table_classification.setHorizontalHeaderLabels(data.columns)
+
+        for i in range(data.shape[0]):
+            for j in range(data.shape[1]):
+                item = QTableWidgetItem(str(data.iat[i, j]))
+                self.ui.table_classification.setItem(i, j, item)
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# ---------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+# ##############################################################################################
+    def go_to_page_2(self):
+        """Переход на вторую страницу"""
+        self.ui.stackedWidget.setCurrentIndex(1) 
+# ##############################################################################################
 
     def slide_left_menu(self):
         width = self.ui.left_menu.width()
