@@ -532,32 +532,32 @@ class MainWindow(QMainWindow):
         x_max = int(self.ui.x_max.text())
         x_range = x_max - x_min
 
-        # rr = self.algorith(self.data_v3, x_range, x)
-        l1 = x[0]
-        l2 = x[1]
-        l3 = x[2]
+        rr = self.algorith(self.data_v3, x_range, x)
+        # l1 = x[0]
+        # l2 = x[1]
+        # l3 = x[2]
 
-        x_st = self.data_v3.iloc[:50, 0].mean()
-        xf_st = self.data_v3.iloc[:50, 0].mean()
-        vf_st = self.data_v3.iloc[:50, 0].var()
-        df_st = 2 * self.data_v3.iloc[:50, 0].var()
-        r_list = []
+        # x_st = self.data_v3.iloc[:50, 0].mean()
+        # xf_st = self.data_v3.iloc[:50, 0].mean()
+        # vf_st = self.data_v3.iloc[:50, 0].var()
+        # df_st = 2 * self.data_v3.iloc[:50, 0].var()
+        # r_list = []
 
-        for i in range(51, x_range):
-            xf = l1 * self.data_v3.iloc[i, 0] + (1 - l1) * xf_st
-            vf = l2 * (self.data_v3.iloc[i, 0] - xf_st) ** 2 + (1 - l2) * vf_st
-            df = l3 * (self.data_v3.iloc[i, 0] - x_st) ** 2 + (1 - l3) * df_st
-            r = ((2 - l1) * vf) / df
-            r_list.append(r)
-            x_st = self.data_v3.iloc[i, 0]
-            xf_st = xf
-            vf_st = vf
-            df_st = df
+        # for i in range(51, x_range):
+        #     xf = l1 * self.data_v3.iloc[i, 0] + (1 - l1) * xf_st
+        #     vf = l2 * (self.data_v3.iloc[i, 0] - xf_st) ** 2 + (1 - l2) * vf_st
+        #     df = l3 * (self.data_v3.iloc[i, 0] - x_st) ** 2 + (1 - l3) * df_st
+        #     r = ((2 - l1) * vf) / df
+        #     r_list.append(r)
+        #     x_st = self.data_v3.iloc[i, 0]
+        #     xf_st = xf
+        #     vf_st = vf
+        #     df_st = df
 
-        r_np = np.array(r_list)
+        # r_np = np.array(r_list)
 
-        self.y_pred = np.where(r_np > 2.3715370273232828, 0, 1)
-        score = f1_score(self.y_true, self.y_pred, average='binary')
+        # self.y_pred = np.where(rr[''] > 2.3715370273232828, 0, 1)
+        score = f1_score(self.y_true, rr['stationary'], average='binary')
 
         return -score
 
@@ -577,7 +577,7 @@ class MainWindow(QMainWindow):
         self.ui.k_1.setText(f"K_1: {round(self.all_ratios[0], 4)}")
         self.ui.k_2.setText(f"K_2: {round(self.all_ratios[1], 4)}")
         self.ui.k_3.setText(f"K_3: {round(self.all_ratios[2], 4)}")
-        self.ui.F_score.setText(f"F_score: {round(self.essential_f, 4)}")
+        self.ui.F_score.setText(f"F_score: {abs(round(self.essential_f, 4))}")
 #&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
     def plot_graph_result(self):
 
@@ -585,48 +585,49 @@ class MainWindow(QMainWindow):
         x_max = int(self.ui.x_max.text())
         range_max_min = x_max - x_min
 
+        rr = self.algorith(range_max_min, self.all_ratios)
     # Параметры алгоритма
-        l1 = self.all_ratios[0]
-        l2 = self.all_ratios[1]
-        l3 = self.all_ratios[2]
+        # l1 = self.all_ratios[0]
+        # l2 = self.all_ratios[1]
+        # l3 = self.all_ratios[2]
 
-        # Начальные значения
-        x_st = self.data_v3.iloc[:50, 0].mean()
-        xf_st = self.data_v3.iloc[:50, 0].mean()
-        vf_st = self.data_v3.iloc[:50, 0].var()
-        df_st = 2 * self.data_v3.iloc[:50, 0].var()
+        # # Начальные значения
+        # x_st = self.data_v3.iloc[:50, 0].mean()
+        # xf_st = self.data_v3.iloc[:50, 0].mean()
+        # vf_st = self.data_v3.iloc[:50, 0].var()
+        # df_st = 2 * self.data_v3.iloc[:50, 0].var()
 
-        # Списки для хранения результатов
-        r_list = []
-        vf_list = []
-        df_list = []
-        xf_list = []
+        # # Списки для хранения результатов
+        # r_list = []
+        # vf_list = []
+        # df_list = []
+        # xf_list = []
 
-        # Основной цикл алгоритма
-        for i in range(51, range_max_min):
-            xf = l1 * self.data_v3.iloc[i, 0] + (1 - l1) * xf_st
-            vf = l2 * (self.data_v3.iloc[i, 0] - xf_st) ** 2 + (1 - l2) * vf_st
-            df = l3 * (self.data_v3.iloc[i, 0] - x_st) ** 2 + (1 - l3) * df_st
-            r = round(((2 - l1) * vf) / df, 4)
+        # # Основной цикл алгоритма
+        # for i in range(51, range_max_min):
+        #     xf = l1 * self.data_v3.iloc[i, 0] + (1 - l1) * xf_st
+        #     vf = l2 * (self.data_v3.iloc[i, 0] - xf_st) ** 2 + (1 - l2) * vf_st
+        #     df = l3 * (self.data_v3.iloc[i, 0] - x_st) ** 2 + (1 - l3) * df_st
+        #     r = round(((2 - l1) * vf) / df, 4)
 
-            vf_list.append(vf)
-            df_list.append(df)
-            r_list.append(r)
-            xf_list.append(xf)
+        #     vf_list.append(vf)
+        #     df_list.append(df)
+        #     r_list.append(r)
+        #     xf_list.append(xf)
 
-            x_st = self.data_v3.iloc[i, 0]
-            xf_st = xf
-            vf_st = vf
-            df_st = df
+        #     x_st = self.data_v3.iloc[i, 0]
+        #     xf_st = xf
+        #     vf_st = vf
+        #     df_st = df
 
-        # Создание DataFrame с результатами
-        rr = pd.DataFrame(data=r_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['R'])
-        # vff = pd.DataFrame(data=vf_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Vf'])
-        # dff = pd.DataFrame(data=df_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Df'])
-        # xff = pd.DataFrame(data=xf_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Xf'])
+        # # Создание DataFrame с результатами
+        # rr = pd.DataFrame(data=r_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['R'])
+        # # vff = pd.DataFrame(data=vf_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Vf'])
+        # # dff = pd.DataFrame(data=df_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Df'])
+        # # xff = pd.DataFrame(data=xf_list, index=self.data_v3.iloc[51:range_max_min].index, columns=['Xf'])
 
-        # Добавление столбца stationary
-        rr['stationary'] = np.where(rr['R'] > 2.3715370273232828, 0, 1)
+        # # Добавление столбца stationary
+        # rr['stationary'] = np.where(rr['R'] > 2.3715370273232828, 0, 1)
         data_graph = pd.concat([self.data_v3, rr], axis=1)
 
         # Очистка предыдущего графика
