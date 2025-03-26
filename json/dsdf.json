@@ -1,0 +1,49 @@
+{
+    "*": {
+        "border": "none",
+        "background-color": "transparent",
+        "padding": "0",
+        "margin": "0",
+        "color": "#fff"
+    },
+    "#centralwidget, #home_btn, #main_content": {
+        "background-color": "#1b1b27"
+    },
+    "#header, #main_body": {
+        "background-color": "#27263c"
+    },
+    "#pushButton": {
+        "border": "1px solid #cc5bce",
+        "border-radius": "16px",
+        "text-align": "center"
+    },
+    "QPushButton": {
+        "text-align": "left",
+        "padding": "3px 10px",
+        "border-top-left-radius": "10px",
+        "border-bottom-left-radius": "10px"
+    },
+    "#home_btn": {
+        "border-left": "1px solid #cc5bce",
+        "font-weight": "bold"
+    },
+    
+    "QPushButtonGroup": 
+        {
+            "Buttons": [
+                "home_btn",
+                "account_btn",
+                "reports_btn",
+                "about_btn",
+                "help_btn",
+                "settings_btn"
+            ],
+            "Style":
+                {
+                    "Active": "background-color: #1b1b27;border-left:3px solid #cc5bce;font-weight:bold;",
+                    "NotActive": "background-color: transparent; border:none;"
+                }
+            
+        }  
+
+}

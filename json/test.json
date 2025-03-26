@@ -90,29 +90,19 @@
     "Labels": {
         "QStackedWidget QLabel, #main_content QLabel": {
             "color": "white",
+            "font-size": "10pt",
             "font-family": "Arial",
-            "text-align": "center",
-            "background-color": "transparent",
-            "border": "1px dashed #4a4864",  
-            "border-radius": "4px",
-            "padding": "3px 8px",
-            "margin": "2px"
+            "text-align": "center"
         },
         "#main_content QLabel:hover": {
-            "color": "#a0a0a0",
-            "border-color": "#5a5874"  
+            "color": "#a0a0a0"
         },
         "SpecialLabels": {
             "#label_4, #label_5, #language_lbl, #theme_lbl, #forn_lbl, #graphs_lbl, #export_lbl, #choose_alg_lbl": {
-                "font-size": "12pt",
-                "border": "1px solid #cc5bce",  
-                "background-color": "rgba(74, 72, 100, 0.2)" 
+                "font-size": "12pt"
             },
             "#data_label, #label_11, #report_label, #label_25, #label_3": {
-                "font-size": "14pt",
-                "border": "1px solid #6a5bce",  
-                "border-radius": "6px",
-                "padding": "5px 10px"
+                "font-size": "14pt"
             }
         }
     },
@@ -170,22 +160,20 @@
         }
     },
 
-    
-    "QPushButtonGroup": {
-        "Buttons": [
-            "home_btn",
-            "account_btn",
-            "reports_btn",
-            "about_btn",
-            "help_btn",
-            "settings_btn",
-            "algorithm_btn",
-            "instruction_btn"
-        ],
-        "Style": {
-            "Active": "background-color: #1b1b27; border-left: 3px solid #cc5bce; font-weight: bold;",
-            "NotActive": "background-color: transparent; border: none;"
+    "ButtonGroups": {
+        "QPushButtonGroup": {
+            "Buttons": [
+                "home_btn",
+                "account_btn",
+                "reports_btn",
+                "about_btn",
+                "help_btn",
+                "settings_btn"
+            ],
+            "Style": {
+                "Active": "background-color: #1b1b27; border-left: 3px solid #cc5bce; font-weight: bold;",
+                "NotActive": "background-color: transparent; border: none;"
+            }
         }
     }
-    
 }
